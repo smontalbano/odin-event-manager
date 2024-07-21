@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
@@ -14,9 +16,9 @@ def legislators_by_zipcode(zip)
     civic_info.representative_info_by_address(
       address: zip,
       levels: 'country',
-      roles: ['legislatorUpperBody', 'legislatorLowerBody']
+      roles: %w[legislatorUpperBody legislatorLowerBody]
     ).officials
-  rescue
+  rescue StandardError
     'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials'
   end
 end
@@ -33,12 +35,13 @@ end
 
 def clean_phone_number(number)
   number.to_s.gsub!(/\D/, '')
-  return number[1..-1] if number.length == 11 && number[0] == '1'
+  return number[1..] if number.length == 11 && number[0] == '1'
+
   number
 end
 
 def valid_number?(number)
-  number.length == 10 ? true : false
+  number.length == 10
 end
 
 def parse_date(date_time, date_hash)
@@ -58,7 +61,7 @@ def parse_time(date_time, hour_hash)
 end
 
 def get_most_common(hash)
-  hash.sort_by {|k,v| v}.reverse
+  hash.sort_by { |_k, v| v }.reverse
 end
 
 puts 'Event Manager Initialized!'
@@ -71,10 +74,9 @@ contents = CSV.open(
 
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
-hour = Hash.new
-date = Hash.new
-WEEKDAYS = %w(Sunday Monday Tuesday Wednesday Thursday Friday Saturday)
-
+hour = {}
+date = {}
+WEEKDAYS = %w[Sunday Monday Tuesday Wednesday Thursday Friday Saturday].freeze
 
 contents.each do |row|
   id = row[0]
@@ -91,5 +93,5 @@ contents.each do |row|
   save_thank_you_letter(id, form_letter)
 end
 
-get_most_common(hour).each { |k,v| puts "#{k} - #{v}"}
-get_most_common(date).each { |k,v| puts "#{WEEKDAYS[k - 1]} - #{v}"}
+get_most_common(hour).each { |k, v| puts "#{k} - #{v}" }
+get_most_common(date).each { |k, v| puts "#{WEEKDAYS[k - 1]} - #{v}" }
